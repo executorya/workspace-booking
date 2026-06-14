@@ -63,14 +63,14 @@ const loginSchema = z.object({
 });
 
 const workspaceSchema = z.object({
-  title: z.string().trim().min(3),
-  description: z.string().trim().min(10),
+  title: z.string().trim().min(3, "Название должно быть не короче 3 символов"),
+  description: z.string().trim().min(10, "Описание должно быть не короче 10 символов"),
   type: z.enum(workspaceTypes),
-  capacity: z.coerce.number().int().min(1),
-  pricePerHour: z.coerce.number().int().min(0),
-  location: z.string().trim().min(3),
-  imageUrl: z.string().trim().url(),
-  amenities: z.array(z.string().trim().min(1)).default([]),
+  capacity: z.coerce.number().int("Вместимость должна быть целым числом").min(1, "Вместимость должна быть не меньше 1"),
+  pricePerHour: z.coerce.number().int("Цена должна быть целым числом").min(0, "Цена не может быть отрицательной"),
+  location: z.string().trim().min(3, "Локация должна быть не короче 3 символов"),
+  imageUrl: z.string().trim().url("Укажите корректный URL изображения"),
+  amenities: z.array(z.string().trim().min(1, "Удобство не может быть пустым")).default([]),
   isActive: z.boolean().optional()
 });
 
@@ -426,7 +426,7 @@ app.patch("/api/bookings/:id/cancel", authenticate, (req: AuthedRequest, res, ne
 
 app.get("/api/admin/workspaces", authenticate, requireAdmin, (_req, res, next) => {
   try {
-    const rows = db.prepare("SELECT * FROM workspaces ORDER BY created_at DESC").all() as Record<string, unknown>[];
+    const rows = db.prepare("SELECT * FROM workspaces WHERE is_active = 1 ORDER BY created_at DESC").all() as Record<string, unknown>[];
     return res.json({ workspaces: rows.map(toWorkspace).map(formatWorkspace) });
   } catch (error) {
     return next(error);
@@ -519,8 +519,8 @@ app.delete("/api/admin/workspaces/:id", authenticate, requireAdmin, (req, res, n
       return res.status(404).json({ message: "Помещение не найдено" });
     }
 
-    db.prepare("UPDATE workspaces SET is_active = 0, updated_at = ? WHERE id = ?").run(now(), workspace.id);
-    return res.json({ workspace: formatWorkspace(getWorkspaceById(workspace.id)!) });
+    db.prepare("DELETE FROM workspaces WHERE id = ?").run(workspace.id);
+    return res.json({ ok: true, id: workspace.id });
   } catch (error) {
     return next(error);
   }

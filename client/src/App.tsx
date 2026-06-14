@@ -736,8 +736,14 @@ function AdminPanel() {
   };
 
   const deactivate = async (id: number) => {
-    await api(`/admin/workspaces/${id}`, { method: "DELETE" });
-    load();
+    setFormMessage("");
+    try {
+      await api(`/admin/workspaces/${id}`, { method: "DELETE" });
+      setWorkspaces((current) => current.filter((workspace) => workspace.id !== id));
+      load();
+    } catch (error) {
+      setFormMessage(error instanceof Error ? error.message : "Не удалось удалить помещение");
+    }
   };
 
   const changeStatus = async (id: number, status: BookingStatus) => {
